@@ -12,6 +12,7 @@ It removes the boilerplate of configuring `GIDSignIn` and parsing `GIDSignInResu
 - Strongly typed `GoogleSignInError` enum with `LocalizedError` descriptions
 - One liner URL callback handling for the host app delegate or SwiftUI scene
 - Drop in `GoogleSignInButton` (UIKit) and `GoogleSignInButtonView` (SwiftUI), so host apps do not need to `import GoogleSignIn` for the button
+- `GoogleSignInButtonModern` (UIKit) and `GoogleSignInButtonModernView` (SwiftUI), a custom built button that scales with caller specified height and offers light, dark, and neutral color schemes
 - A single, well known dependency on `GoogleSignIn-iOS`
 
 ## Requirements
@@ -187,6 +188,43 @@ GoogleSignInButtonView(style: .wide, colorScheme: .light) {
 .frame(height: 44)
 ```
 
+### Modern, height scalable button
+
+`GoogleSignInButton` is a typealias of Google's older `GIDSignInButton`, which has a baked in size and ignores caller specified heights. When you need a button that follows your design system (taller, custom corner radius, etc.), use `GoogleSignInButtonModern` instead. It is laid out with Auto Layout and scales with whatever height you give it.
+
+The Google "G" mark is **not bundled**. Download the official asset from [Google's brand guidelines](https://developers.google.com/identity/branding-guidelines) and supply it via `logoImage`. Without an image the button renders text only.
+
+UIKit:
+
+```swift
+import GoogleSignInKit
+
+let button = GoogleSignInButtonModern()
+button.colorScheme = .light                   // .light, .dark, .neutral
+button.textVariant = .signIn                  // .signIn, .signUp, .continueWith
+button.cornerRadius = 12
+button.logoImage = UIImage(named: "GoogleG")  // your asset
+button.heightAnchor.constraint(equalToConstant: 56).isActive = true
+button.addTarget(self, action: #selector(handleSignIn), for: .touchUpInside)
+loginProviderStackView.addArrangedSubview(button)
+```
+
+SwiftUI:
+
+```swift
+import GoogleSignInKit
+
+GoogleSignInButtonModernView(colorScheme: .light,
+                             textVariant: .signIn,
+                             logoImage: UIImage(named: "GoogleG"),
+                             cornerRadius: 12) {
+    coordinator.signIn(from: presenter) { result in
+        // handle result
+    }
+}
+.frame(height: 56)
+```
+
 ### Restoring a previous sign in on launch
 
 ```swift
@@ -242,6 +280,8 @@ try await coordinator.disconnect()       // also revokes tokens server side
 | `GoogleSignInButton` | UIKit sign in button (typealias of `GIDSignInButton`). |
 | `GoogleSignInButtonStyle`, `GoogleSignInButtonColorScheme` | Button style and color scheme typealiases. |
 | `GoogleSignInButtonView` | SwiftUI wrapper around `GoogleSignInButton` with a tap closure. |
+| `GoogleSignInButtonModern` | UIKit custom built button. Auto Layout friendly, scales with caller specified height. Configurable color scheme, text variant, corner radius, and logo image. |
+| `GoogleSignInButtonModernView` | SwiftUI wrapper around `GoogleSignInButtonModern`. |
 
 ## Testing
 
