@@ -39,7 +39,7 @@ final class GoogleSignInButtonModernTests: XCTestCase {
 
     func testTextVariantRoundTrip() {
         let button = GoogleSignInButtonModern()
-        for value: GoogleSignInButtonModern.TextVariant in [.signIn, .signUp, .continueWith] {
+        for value: GoogleSignInButtonModern.TextVariant in [.signIn, .signUp, .continueWith, .iconOnly] {
             button.textVariant = value
             XCTAssertEqual(button.textVariant, value)
         }
@@ -52,6 +52,46 @@ final class GoogleSignInButtonModernTests: XCTestCase {
                        "Sign up with Google")
         XCTAssertEqual(GoogleSignInButtonModern.TextVariant.continueWith.localizedTitle,
                        "Continue with Google")
+        XCTAssertNil(GoogleSignInButtonModern.TextVariant.iconOnly.localizedTitle)
+    }
+
+    func testIconOnlyVariantHasSquareIntrinsicContentSize() {
+        let button = GoogleSignInButtonModern()
+        button.textVariant = .iconOnly
+        XCTAssertEqual(button.intrinsicContentSize, CGSize(width: 44, height: 44))
+    }
+
+    func testWideVariantHasOpenWidthIntrinsicContentSize() {
+        let button = GoogleSignInButtonModern()
+        button.textVariant = .signIn
+        XCTAssertEqual(button.intrinsicContentSize.width, UIView.noIntrinsicMetric)
+        XCTAssertEqual(button.intrinsicContentSize.height, 44)
+    }
+
+    func testIconOnlyVariantLoadsBundledNeutralAssetForLightScheme() {
+        let button = GoogleSignInButtonModern()
+        button.colorScheme = .light
+        button.textVariant = .iconOnly
+        button.layoutIfNeeded()
+        XCTAssertNotNil(button.subviews.compactMap { $0 as? UIStackView }.first)
+    }
+
+    func testIconOnlySchemeSwitchUpdatesBundledAsset() {
+        let button = GoogleSignInButtonModern()
+        button.textVariant = .iconOnly
+        button.colorScheme = .light
+        let lightImage = imageView(in: button)?.image
+        button.colorScheme = .dark
+        let darkImage = imageView(in: button)?.image
+        XCTAssertNotNil(lightImage, "Bundled neutral asset should be loaded.")
+        XCTAssertNotNil(darkImage, "Bundled dark asset should be loaded.")
+        XCTAssertNotEqual(lightImage?.pngData(), darkImage?.pngData(),
+                          "Light and dark bundled assets should differ.")
+    }
+
+    private func imageView(in button: GoogleSignInButtonModern) -> UIImageView? {
+        let stack = button.subviews.compactMap { $0 as? UIStackView }.first
+        return stack?.arrangedSubviews.compactMap { $0 as? UIImageView }.first
     }
 
     func testCornerRadiusRoundTrip() {

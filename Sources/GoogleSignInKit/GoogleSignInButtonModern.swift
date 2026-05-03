@@ -16,9 +16,16 @@ import UIKit
 /// laid out with Auto Layout and scales with whatever height the host gives
 /// it (set a `heightAnchor`, place it in a stack view, etc).
 ///
-/// The Google G mark is **not** bundled. Download Google's official asset
-/// from <https://developers.google.com/identity/branding-guidelines> and
-/// supply it via ``logoImage``. Without an image the button renders text only.
+/// The package bundles Google's official iOS sign in icon assets (square,
+/// neutral and dark variants). When ``textVariant`` is ``TextVariant/iconOnly``,
+/// the button auto picks the right asset based on ``colorScheme`` and renders
+/// it edge to edge, ignoring the custom background and border drawing.
+///
+/// For wide variants (``TextVariant/signIn``, ``TextVariant/signUp``,
+/// ``TextVariant/continueWith``) the Google "G" mark is **not** bundled.
+/// Download Google's official asset from
+/// <https://developers.google.com/identity/branding-guidelines> and supply it
+/// via ``logoImage``. Without an image the button renders text only.
 public final class GoogleSignInButtonModern: UIControl {
 
     /// Visual color scheme.
@@ -34,7 +41,7 @@ public final class GoogleSignInButtonModern: UIControl {
         case neutral
     }
 
-    /// The text shown to the right of the logo.
+    /// What the button shows.
     public enum TextVariant: Equatable {
         /// "Sign in with Google".
         case signIn
@@ -42,44 +49,68 @@ public final class GoogleSignInButtonModern: UIControl {
         case signUp
         /// "Continue with Google".
         case continueWith
+        /// Square icon only button using Google's bundled official asset. The
+        /// asset is auto picked based on ``colorScheme`` (dark for `.dark`,
+        /// neutral for `.light` and `.neutral`).
+        case iconOnly
 
-        var localizedTitle: String {
+        var localizedTitle: String? {
             switch self {
             case .signIn:       return "Sign in with Google"
             case .signUp:       return "Sign up with Google"
             case .continueWith: return "Continue with Google"
+            case .iconOnly:     return nil
             }
         }
     }
 
     /// The visual color scheme. Default is `.light`.
     public var colorScheme: ColorScheme = .light {
-        didSet { applyAppearance() }
-    }
-
-    /// The text variant displayed inside the button. Default is `.signIn`.
-    public var textVariant: TextVariant = .signIn {
-        didSet { titleLabel.text = textVariant.localizedTitle }
-    }
-
-    /// Optional image rendered on the leading edge of the button. Supply
-    /// Google's official "G" mark here. When `nil`, the button renders text
-    /// only.
-    public var logoImage: UIImage? {
         didSet {
-            logoImageView.image = logoImage
-            logoImageView.isHidden = logoImage == nil
+            applyAppearance()
+            updateBundledIconIfNeeded()
         }
     }
 
-    /// Corner radius of the button. Default is 8 points.
+    /// What the button displays. Default is `.signIn`.
+    public var textVariant: TextVariant = .signIn {
+        didSet {
+            titleLabel.text = textVariant.localizedTitle
+            applyLayoutMode()
+            applyAppearance()
+            updateBundledIconIfNeeded()
+        }
+    }
+
+    /// Optional image rendered on the leading edge of the button (wide
+    /// variants) or filling the full button (icon only variant). Setting this
+    /// overrides the bundled asset for ``TextVariant/iconOnly``.
+    public var logoImage: UIImage? {
+        didSet {
+            customLogoImage = logoImage
+            refreshLogoImageView()
+        }
+    }
+
+    /// Corner radius of the button. Default is 8 points. Ignored when
+    /// ``textVariant`` is ``TextVariant/iconOnly`` (the bundled SVG renders
+    /// its own corners).
     public var cornerRadius: CGFloat = 8 {
-        didSet { layer.cornerRadius = cornerRadius }
+        didSet {
+            if textVariant != .iconOnly {
+                layer.cornerRadius = cornerRadius
+            }
+        }
     }
 
     private let logoImageView = UIImageView()
     private let titleLabel = UILabel()
     private let contentStack = UIStackView()
+
+    private var customLogoImage: UIImage?
+
+    private var wideConstraints: [NSLayoutConstraint] = []
+    private var iconOnlyConstraints: [NSLayoutConstraint] = []
     private var logoSizeConstraint: NSLayoutConstraint?
 
     public override init(frame: CGRect) {
@@ -93,15 +124,20 @@ public final class GoogleSignInButtonModern: UIControl {
     }
 
     public override var intrinsicContentSize: CGSize {
-        CGSize(width: UIView.noIntrinsicMetric, height: 44)
+        if textVariant == .iconOnly {
+            return CGSize(width: 44, height: 44)
+        }
+        return CGSize(width: UIView.noIntrinsicMetric, height: 44)
     }
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        let logoSide = max(bounds.height * 0.5, 16)
-        logoSizeConstraint?.constant = logoSide
-        titleLabel.font = .systemFont(ofSize: max(bounds.height * 0.32, 13),
-                                      weight: .medium)
+        if textVariant != .iconOnly {
+            let logoSide = max(bounds.height * 0.5, 16)
+            logoSizeConstraint?.constant = logoSide
+            titleLabel.font = .systemFont(ofSize: max(bounds.height * 0.32, 13),
+                                          weight: .medium)
+        }
     }
 
     private func setupViews() {
@@ -131,25 +167,61 @@ public final class GoogleSignInButtonModern: UIControl {
         let logoSize = logoImageView.heightAnchor.constraint(equalToConstant: 22)
         logoSizeConstraint = logoSize
 
-        NSLayoutConstraint.activate([
+        wideConstraints = [
             contentStack.centerXAnchor.constraint(equalTo: centerXAnchor),
             contentStack.centerYAnchor.constraint(equalTo: centerYAnchor),
             contentStack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 16),
             contentStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
             logoImageView.widthAnchor.constraint(equalTo: logoImageView.heightAnchor),
             logoSize
-        ])
+        ]
 
-        layer.cornerRadius = cornerRadius
+        iconOnlyConstraints = [
+            contentStack.leadingAnchor.constraint(equalTo: leadingAnchor),
+            contentStack.trailingAnchor.constraint(equalTo: trailingAnchor),
+            contentStack.topAnchor.constraint(equalTo: topAnchor),
+            contentStack.bottomAnchor.constraint(equalTo: bottomAnchor),
+            widthAnchor.constraint(equalTo: heightAnchor)
+        ]
+        for constraint in iconOnlyConstraints where constraint.firstAnchor === widthAnchor {
+            constraint.priority = .defaultHigh
+        }
+
         layer.masksToBounds = true
+        applyLayoutMode()
         applyAppearance()
+        updateBundledIconIfNeeded()
 
         addTarget(self, action: #selector(handleHighlightDown), for: [.touchDown, .touchDragEnter])
         addTarget(self, action: #selector(handleHighlightUp),
                   for: [.touchUpInside, .touchUpOutside, .touchCancel, .touchDragExit])
     }
 
+    private func applyLayoutMode() {
+        switch textVariant {
+        case .iconOnly:
+            NSLayoutConstraint.deactivate(wideConstraints)
+            NSLayoutConstraint.activate(iconOnlyConstraints)
+            titleLabel.isHidden = true
+            logoImageView.isHidden = false
+        default:
+            NSLayoutConstraint.deactivate(iconOnlyConstraints)
+            NSLayoutConstraint.activate(wideConstraints)
+            titleLabel.isHidden = false
+            refreshLogoImageView()
+        }
+        invalidateIntrinsicContentSize()
+    }
+
     private func applyAppearance() {
+        if textVariant == .iconOnly {
+            backgroundColor = .clear
+            layer.borderWidth = 0
+            layer.borderColor = nil
+            layer.cornerRadius = 0
+            return
+        }
+        layer.cornerRadius = cornerRadius
         switch colorScheme {
         case .light:
             backgroundColor = .white
@@ -167,6 +239,31 @@ public final class GoogleSignInButtonModern: UIControl {
             layer.borderWidth = 0
             layer.borderColor = nil
         }
+    }
+
+    private func updateBundledIconIfNeeded() {
+        guard textVariant == .iconOnly, customLogoImage == nil else {
+            refreshLogoImageView()
+            return
+        }
+        logoImageView.image = GoogleSignInButtonModern.bundledIcon(for: colorScheme)
+        logoImageView.isHidden = logoImageView.image == nil
+    }
+
+    private func refreshLogoImageView() {
+        if textVariant == .iconOnly {
+            let image = customLogoImage ?? GoogleSignInButtonModern.bundledIcon(for: colorScheme)
+            logoImageView.image = image
+            logoImageView.isHidden = image == nil
+        } else {
+            logoImageView.image = customLogoImage
+            logoImageView.isHidden = customLogoImage == nil
+        }
+    }
+
+    private static func bundledIcon(for scheme: ColorScheme) -> UIImage? {
+        let name: String = (scheme == .dark) ? "GoogleSignInIconDark" : "GoogleSignInIconNeutral"
+        return UIImage(named: name, in: .module, compatibleWith: nil)
     }
 
     @objc private func handleHighlightDown() {
