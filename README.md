@@ -14,7 +14,7 @@ It removes the boilerplate of configuring `GIDSignIn` and parsing `GIDSignInResu
 - Strongly typed `GoogleSignInError` enum with `LocalizedError` descriptions
 - One liner URL callback handling for the host app delegate or SwiftUI scene
 - Drop in `GoogleSignInButton` (UIKit) and `GoogleSignInButtonView` (SwiftUI), so host apps do not need to `import GoogleSignIn` for the button
-- `GoogleSignInButtonModern` (UIKit) and `GoogleSignInButtonModernView` (SwiftUI), a custom built button that scales with caller specified height and offers light, dark, and neutral color schemes
+- `GoogleSignInButtonModern` (UIKit) and `GoogleSignInButtonModernView` (SwiftUI), a custom built button that scales with caller specified height, offers light, dark, and neutral color schemes, and ships with bundled Google logo assets so no host setup is needed
 - A single, well known dependency on `GoogleSignIn-iOS`
 
 ## Requirements
@@ -194,9 +194,12 @@ GoogleSignInButtonView(style: .wide, colorScheme: .light) {
 
 `GoogleSignInButton` is a typealias of Google's older `GIDSignInButton`, which has a baked in size and ignores caller specified heights. When you need a button that follows your design system (taller, custom corner radius, etc.), use `GoogleSignInButtonModern` instead. It is laid out with Auto Layout and scales with whatever height you give it.
 
-For wide variants (`.signIn`, `.signUp`, `.continueWith`) the Google "G" mark is **not bundled**. Download the official asset from [Google's brand guidelines](https://developers.google.com/identity/branding-guidelines) and supply it via `logoImage`. Without an image the button renders text only.
+The package bundles Google's official sign in assets, so no host setup is needed:
 
-For `.iconOnly` the package bundles Google's official square sign in SVGs (neutral and dark variants) and auto picks the right one based on `colorScheme`. No extra setup required.
+- **Wide variants** (`.signIn`, `.signUp`, `.continueWith`) auto load the multi color Google "G" mark on the leading edge.
+- **`.iconOnly`** auto loads Google's official square SVG (neutral or dark variant) based on `colorScheme`.
+
+You can still override either with your own image by setting `logoImage`.
 
 UIKit, wide button:
 
@@ -207,7 +210,6 @@ let button = GoogleSignInButtonModern()
 button.colorScheme = .light                   // .light, .dark, .neutral
 button.textVariant = .signIn                  // .signIn, .signUp, .continueWith
 button.cornerRadius = 12
-button.logoImage = UIImage(named: "GoogleG")  // your asset
 button.heightAnchor.constraint(equalToConstant: 56).isActive = true
 button.addTarget(self, action: #selector(handleSignIn), for: .touchUpInside)
 loginProviderStackView.addArrangedSubview(button)
