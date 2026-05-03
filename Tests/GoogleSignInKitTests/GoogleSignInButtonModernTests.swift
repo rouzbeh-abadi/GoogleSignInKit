@@ -89,6 +89,35 @@ final class GoogleSignInButtonModernTests: XCTestCase {
                           "Light and dark bundled assets should differ.")
     }
 
+    func testWideVariantAutoLoadsBundledGLogo() {
+        let button = GoogleSignInButtonModern()
+        button.textVariant = .signIn
+        button.colorScheme = .light
+        XCTAssertNotNil(imageView(in: button)?.image,
+                        "Wide signIn variant should auto load the bundled G logo.")
+    }
+
+    func testWideVariantUsesSameLogoAcrossColorSchemes() {
+        let button = GoogleSignInButtonModern()
+        button.textVariant = .signIn
+        button.colorScheme = .light
+        let lightImage = imageView(in: button)?.image
+        button.colorScheme = .dark
+        let darkImage = imageView(in: button)?.image
+        XCTAssertNotNil(lightImage)
+        XCTAssertNotNil(darkImage)
+        XCTAssertEqual(lightImage?.pngData(), darkImage?.pngData(),
+                       "Wide variant should use the same multi color G logo regardless of scheme.")
+    }
+
+    func testCustomLogoOverridesBundledAsset() {
+        let button = GoogleSignInButtonModern()
+        button.textVariant = .signIn
+        let custom = UIImage(systemName: "g.circle.fill")
+        button.logoImage = custom
+        XCTAssertEqual(imageView(in: button)?.image, custom)
+    }
+
     private func imageView(in button: GoogleSignInButtonModern) -> UIImageView? {
         let stack = button.subviews.compactMap { $0 as? UIStackView }.first
         return stack?.arrangedSubviews.compactMap { $0 as? UIImageView }.first

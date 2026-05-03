@@ -16,16 +16,15 @@ import UIKit
 /// laid out with Auto Layout and scales with whatever height the host gives
 /// it (set a `heightAnchor`, place it in a stack view, etc).
 ///
-/// The package bundles Google's official iOS sign in icon assets (square,
-/// neutral and dark variants). When ``textVariant`` is ``TextVariant/iconOnly``,
-/// the button auto picks the right asset based on ``colorScheme`` and renders
-/// it edge to edge, ignoring the custom background and border drawing.
+/// The package bundles Google's official sign in assets:
 ///
-/// For wide variants (``TextVariant/signIn``, ``TextVariant/signUp``,
-/// ``TextVariant/continueWith``) the Google "G" mark is **not** bundled.
-/// Download Google's official asset from
-/// <https://developers.google.com/identity/branding-guidelines> and supply it
-/// via ``logoImage``. Without an image the button renders text only.
+/// - For ``TextVariant/iconOnly``, the full square SVG (neutral or dark
+///   based on ``colorScheme``) is rendered edge to edge.
+/// - For wide variants (``TextVariant/signIn``, ``TextVariant/signUp``,
+///   ``TextVariant/continueWith``), the multi color Google "G" mark is shown
+///   on the leading edge automatically. No host setup required.
+///
+/// Setting ``logoImage`` overrides the bundled asset in either mode.
 public final class GoogleSignInButtonModern: UIControl {
 
     /// Visual color scheme.
@@ -84,7 +83,7 @@ public final class GoogleSignInButtonModern: UIControl {
 
     /// Optional image rendered on the leading edge of the button (wide
     /// variants) or filling the full button (icon only variant). Setting this
-    /// overrides the bundled asset for ``TextVariant/iconOnly``.
+    /// overrides the bundled asset.
     public var logoImage: UIImage? {
         didSet {
             customLogoImage = logoImage
@@ -242,27 +241,25 @@ public final class GoogleSignInButtonModern: UIControl {
     }
 
     private func updateBundledIconIfNeeded() {
-        guard textVariant == .iconOnly, customLogoImage == nil else {
-            refreshLogoImageView()
-            return
-        }
-        logoImageView.image = GoogleSignInButtonModern.bundledIcon(for: colorScheme)
-        logoImageView.isHidden = logoImageView.image == nil
+        refreshLogoImageView()
     }
 
     private func refreshLogoImageView() {
-        if textVariant == .iconOnly {
-            let image = customLogoImage ?? GoogleSignInButtonModern.bundledIcon(for: colorScheme)
-            logoImageView.image = image
-            logoImageView.isHidden = image == nil
-        } else {
-            logoImageView.image = customLogoImage
-            logoImageView.isHidden = customLogoImage == nil
-        }
+        let image = customLogoImage ?? GoogleSignInButtonModern.bundledImage(for: textVariant,
+                                                                             scheme: colorScheme)
+        logoImageView.image = image
+        logoImageView.isHidden = image == nil
     }
 
-    private static func bundledIcon(for scheme: ColorScheme) -> UIImage? {
-        let name: String = (scheme == .dark) ? "GoogleSignInIconDark" : "GoogleSignInIconNeutral"
+    private static func bundledImage(for variant: TextVariant,
+                                     scheme: ColorScheme) -> UIImage? {
+        let name: String
+        switch variant {
+        case .iconOnly:
+            name = (scheme == .dark) ? "GoogleSignInIconDark" : "GoogleSignInIconNeutral"
+        case .signIn, .signUp, .continueWith:
+            name = "GoogleSignInLogo"
+        }
         return UIImage(named: name, in: .module, compatibleWith: nil)
     }
 
