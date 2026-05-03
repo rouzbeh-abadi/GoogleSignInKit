@@ -110,7 +110,6 @@ public final class GoogleSignInButtonModern: UIControl {
 
     private var wideConstraints: [NSLayoutConstraint] = []
     private var iconOnlyConstraints: [NSLayoutConstraint] = []
-    private var logoSizeConstraint: NSLayoutConstraint?
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -129,25 +128,18 @@ public final class GoogleSignInButtonModern: UIControl {
         return CGSize(width: UIView.noIntrinsicMetric, height: 44)
     }
 
-    public override func layoutSubviews() {
-        super.layoutSubviews()
-        if textVariant != .iconOnly {
-            let logoSide = max(bounds.height * 0.5, 16)
-            logoSizeConstraint?.constant = logoSide
-            titleLabel.font = .systemFont(ofSize: max(bounds.height * 0.32, 13),
-                                          weight: .medium)
-        }
-    }
-
     private func setupViews() {
-        translatesAutoresizingMaskIntoConstraints = false
+        // Do not set translatesAutoresizingMaskIntoConstraints on self.
+        // UIKit hosts decide the value when adding the button to their
+        // hierarchy, and SwiftUI's UIViewRepresentable manages the root
+        // frame directly (so the default `true` is required there).
 
         logoImageView.contentMode = .scaleAspectFit
         logoImageView.translatesAutoresizingMaskIntoConstraints = false
         logoImageView.isHidden = true
 
         titleLabel.text = textVariant.localizedTitle
-        titleLabel.font = .systemFont(ofSize: 15, weight: .medium)
+        titleLabel.font = .systemFont(ofSize: 16, weight: .medium)
         titleLabel.adjustsFontSizeToFitWidth = true
         titleLabel.minimumScaleFactor = 0.75
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -163,8 +155,11 @@ public final class GoogleSignInButtonModern: UIControl {
 
         addSubview(contentStack)
 
-        let logoSize = logoImageView.heightAnchor.constraint(equalToConstant: 22)
-        logoSizeConstraint = logoSize
+        // Logo height tracks the button height via Auto Layout (no
+        // layoutSubviews dance), so resizing converges in one pass and the
+        // contentStack's centerY constraint always lands at the button center.
+        let logoHeight = logoImageView.heightAnchor.constraint(equalTo: heightAnchor, multiplier: 0.5)
+        logoHeight.priority = .required - 1
 
         wideConstraints = [
             contentStack.centerXAnchor.constraint(equalTo: centerXAnchor),
@@ -172,7 +167,9 @@ public final class GoogleSignInButtonModern: UIControl {
             contentStack.leadingAnchor.constraint(greaterThanOrEqualTo: leadingAnchor, constant: 16),
             contentStack.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -16),
             logoImageView.widthAnchor.constraint(equalTo: logoImageView.heightAnchor),
-            logoSize
+            logoHeight,
+            logoImageView.heightAnchor.constraint(lessThanOrEqualToConstant: 40),
+            logoImageView.heightAnchor.constraint(greaterThanOrEqualToConstant: 16)
         ]
 
         iconOnlyConstraints = [
