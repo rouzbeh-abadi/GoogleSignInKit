@@ -1,5 +1,7 @@
 # GoogleSignInKit
 
+[![CI](https://github.com/rouzbeh-abadi/GoogleSignInKit/actions/workflows/ci.yml/badge.svg)](https://github.com/rouzbeh-abadi/GoogleSignInKit/actions/workflows/ci.yml)
+
 A small Swift package that wraps Google's official [GoogleSignIn-iOS](https://github.com/google/GoogleSignIn-iOS) SDK behind a strongly typed, async/await friendly API.
 
 It removes the boilerplate of configuring `GIDSignIn` and parsing `GIDSignInResult`, and exposes a coordinator that is API parallel to [AppleSignInKit](https://github.com/rouzbeh-abadi/AppleSignInKit), so a host app can adopt both with one mental model.
