@@ -11,6 +11,7 @@ It removes the boilerplate of configuring `GIDSignIn` and parsing `GIDSignInResu
 - Strongly typed `GoogleSignInResult` value type, safe to pass across queues
 - Strongly typed `GoogleSignInError` enum with `LocalizedError` descriptions
 - One liner URL callback handling for the host app delegate or SwiftUI scene
+- Drop in `GoogleSignInButton` (UIKit) and `GoogleSignInButtonView` (SwiftUI), so host apps do not need to `import GoogleSignIn` for the button
 - A single, well known dependency on `GoogleSignIn-iOS`
 
 ## Requirements
@@ -157,6 +158,35 @@ struct LoginView: View {
 }
 ```
 
+### Using the built in button
+
+Google's official sign in button is re exported under cleaner names so the host app does not need to `import GoogleSignIn`.
+
+UIKit:
+
+```swift
+import GoogleSignInKit
+
+let button = GoogleSignInButton()
+button.style = .wide          // .standard, .wide, .iconOnly
+button.colorScheme = .light   // .light, .dark
+button.addTarget(self, action: #selector(handleSignIn), for: .touchUpInside)
+loginProviderStackView.addArrangedSubview(button)
+```
+
+SwiftUI:
+
+```swift
+import GoogleSignInKit
+
+GoogleSignInButtonView(style: .wide, colorScheme: .light) {
+    coordinator.signIn(from: presenter) { result in
+        // handle result
+    }
+}
+.frame(height: 44)
+```
+
 ### Restoring a previous sign in on launch
 
 ```swift
@@ -209,6 +239,9 @@ try await coordinator.disconnect()       // also revokes tokens server side
 | `GoogleSignInCoordinator` | Configures Google Sign In and performs sign in, restore, sign out, and disconnect. |
 | `GoogleSignInResult` | Value type snapshot of the signed in Google user. |
 | `GoogleSignInError` | Strongly typed errors mapped from `GIDSignInError`. |
+| `GoogleSignInButton` | UIKit sign in button (typealias of `GIDSignInButton`). |
+| `GoogleSignInButtonStyle`, `GoogleSignInButtonColorScheme` | Button style and color scheme typealiases. |
+| `GoogleSignInButtonView` | SwiftUI wrapper around `GoogleSignInButton` with a tap closure. |
 
 ## Testing
 
