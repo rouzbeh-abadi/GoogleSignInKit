@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on iOS Simulator
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Pick latest available iPhone simulator
+        id: pick-sim
+        run: |
+          set -euo pipefail
+          DEVICE=$(xcrun simctl list -j devices available \
+            | python3 -c "import json,sys; data=json.load(sys.stdin)['devices']; phones=sorted({d['name'] for runtime,devices in data.items() if 'iOS' in runtime for d in devices if d['name'].startswith('iPhone')}); print(phones[-1])")
+          echo "Using simulator: $DEVICE"
+          echo "device=$DEVICE" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Swift package dependencies
+        run: xcodebuild -scheme GoogleSignInKit -resolvePackageDependencies
+
+      - name: Run tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme GoogleSignInKit \
+            -destination "platform=iOS Simulator,name=${{ steps.pick-sim.outputs.device }},OS=latest"
