@@ -61,6 +61,25 @@ public struct GoogleSignInButtonModernView: UIViewRepresentable {
         context.coordinator.action = action
     }
 
+    /// Tells SwiftUI to give the button the full proposed frame, so the
+    /// underlying Auto Layout center constraints have a frame to work
+    /// against. Without this SwiftUI may collapse the button to its
+    /// intrinsic content width and the logo plus text appear misaligned.
+    @available(iOS 16.0, *)
+    public func sizeThatFits(_ proposal: ProposedViewSize,
+                             uiView: GoogleSignInButtonModern,
+                             context: Context) -> CGSize? {
+        let proposedHeight = proposal.height ?? 44
+        if textVariant == .iconOnly {
+            let proposedWidth = proposal.width ?? proposedHeight
+            let side = max(min(proposedWidth, proposedHeight), 1)
+            return CGSize(width: side, height: side)
+        }
+        let proposedWidth = proposal.width ?? UIView.layoutFittingExpandedSize.width
+        return CGSize(width: max(proposedWidth, 1),
+                      height: max(proposedHeight, 1))
+    }
+
     public func makeCoordinator() -> Coordinator {
         Coordinator(action: action)
     }
